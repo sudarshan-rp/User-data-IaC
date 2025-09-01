@@ -38,6 +38,8 @@ resource "aws_nat_gateway" "main" {
     subnet_id     = aws_subnet.public[count.index].id
 }
 
+##A Route Table in AWS is basically a set of rules that control where network traffic goes inside your VPC.
+
 resource "aws_route_table" "public" {
     vpc_id = aws_vpc.custom.id
 
@@ -57,6 +59,8 @@ resource "aws_route_table" "private" {
 
     }
 }
+
+##resource that links a route table to a subnet (or gateway) inside a VPC.
 
 resource "aws_route_table_association" "private" {
     count = length(var.private_subnet_cidrs)

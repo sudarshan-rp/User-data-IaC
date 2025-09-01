@@ -8,3 +8,13 @@ variable "private_subnet_ids" {
     type      = list(string)
 }
 
+variable "node_groups" {
+  description = "Map of node group configurations"
+    type      = map(object({
+      instance_type = list(string)
+      desired_capacity = number
+      min_size = number
+      max_size = number
+    }))
+  
+}

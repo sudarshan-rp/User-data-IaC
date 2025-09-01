@@ -22,5 +22,30 @@ variable "availability_zones" {
     default = [ "us-east-1a", "us-east-1b" ]
 }
 
+variable "cluster_version" {
+  description = "Kubernetes cluster version"
+    type      = string
+    default = "1.31"
+  
+}
+
+variable "node_groups" {
+  description = "Map of node group configurations"
+    type      = map(object({
+      instance_type = list(string)
+      desired_capacity = number
+      min_size = number
+      max_size = number
+    }))
+    default = {
+      ng-1 = {
+        instance_type = ["t3.medium"]
+        desired_capacity = 1
+        min_size = 1
+        max_size = 2 
+      }
+    }
+  
+}
 
 
