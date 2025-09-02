@@ -1,16 +1,15 @@
 resource "aws_eks_cluster" "custom" {
-  name = custom-eks
+  name = "custom-eks"
   version = var.cluster_version
 
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks-cluster.arn
 
   vpc_config {
     subnet_ids = var.private_subnet_ids
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSVPCResourceController
+    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy
   ]
 }
 
@@ -32,7 +31,7 @@ resource "aws_iam_role" "eks-cluster" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
-  role       = aws_iam_role.eks_cluster_role.name
+  role       = aws_iam_role.eks-cluster.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }   
 
@@ -73,12 +72,12 @@ resource "aws_eks_node_group" "main" {
     node_role_arn   = aws_iam_role.nodes.arn
     subnet_ids      = var.private_subnet_ids
     scaling_config {
-        desired_size = each.value.desired_size
-        max_size     = each.value.max_size
-        min_size     = each.value.min_size
+        desired_size   = each.value.scaling_config.desired_capacity
+        max_size     = each.value.scaling_config.max_size
+        min_size     = each.value.scaling_config.min_size
 
     }
-    disk_size = 10
+    disk_size = 20
     instance_types = each.value.instance_types
     depends_on = [aws_eks_cluster.custom, aws_iam_role_policy_attachment.node_policy]
 
