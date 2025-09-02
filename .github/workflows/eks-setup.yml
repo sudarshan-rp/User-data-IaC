@@ -36,6 +36,9 @@ jobs:
 
             - name: Terraform Init
               run: terraform init -backend-config="bucket=$BUCKET_TF_STATE" 
+            
+            - name: Terraform Format without checking
+              run: terraform fmt     
 
             # Checks that all Terraform configuration files adhere to a canonical format
             - name: Terraform Format
