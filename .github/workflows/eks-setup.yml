@@ -1,0 +1,60 @@
+name: 'eks_setup'
+
+on:
+    workflow_dispatch:
+        inputs:
+            action:
+                description: 'Action to perform'
+                required: true
+                default: 'create-cluster'
+                type: choice
+                options:
+                    - create-cluster
+                    - delete-cluster
+
+permissions:
+    contents: read
+    pull-requests: write
+
+env:
+    AWS_ACCESS_KEY_ID : ${{ secrets.AWS_ACCESS_KEY_ID}}
+    AWS_SECRET_ACCESS_KEY : ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+    BUCKET_TF_STATE : ${{ secrets.BUCKET_TF_STATE}}
+
+jobs:
+    terraform:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v2
+              with:
+                terraform_version: 1.5.7
+
+            - name: Terraform Init
+              run: terraform init -backend-config="bucket=$BUCKET_TF_STATE" 
+
+            # Checks that all Terraform configuration files adhere to a canonical format
+            - name: Terraform Format
+              run: terraform fmt -check
+
+            #Validates the syntax and internal consistency of Terraform configuration files.
+            - name: Terraform validate
+              run: terraform validate
+
+            # Generates an execution plan for Terraform
+            - name: Terraform Plan
+              run: terraform plan -input=false
+            
+
+            - name: Terraform Apply
+              run: | 
+                if [ "${{ github.event.inputs.action }}" == "create-cluster" ]; then terraform apply -auto-approve  
+                elif [ "${{ github.event.inputs.action }}" == "delete-cluster" ]; then terraform destroy -auto-approve -input=false
+                else
+                echo "Invalid action"
+                exit 1
+                fi
