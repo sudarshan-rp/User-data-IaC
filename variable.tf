@@ -32,20 +32,20 @@ variable "cluster_version" {
 variable "node_groups" {
   description = "Map of node group configurations"
   type = map(object({
-    instance_types   = list(string)
+    instance_types = list(string)
     scaling_config = object({
-    desired_capacity = number
-    min_size         = number
-    max_size         = number
-  })}))
+      desired_capacity = number
+      min_size         = number
+      max_size         = number
+  }) }))
   default = {
     general = {
-      instance_types    = ["t3.small"]
+      instance_types = ["t3.small"]
       scaling_config = {
         desired_capacity = 2
         min_size         = 2
         max_size         = 3
-      } 
+      }
     }
   }
 
