@@ -13,9 +13,7 @@ resource "aws_eks_cluster" "custom" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy
-  ]
+  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
 }
 
 resource "aws_iam_role" "eks-cluster" {
@@ -35,16 +33,9 @@ resource "aws_iam_role" "eks-cluster" {
     })
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
+resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks-cluster.name
-  for_each = toset([
-    "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
-      "arn:aws:iam::aws:policy/AmazonEKSServicePolicy",
-        "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
-  ])
-
-  policy_arn = each.value
-
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }   
 
 resource "aws_iam_role" "nodes" {
@@ -66,16 +57,53 @@ resource "aws_iam_role" "nodes" {
 }
 
 
-resource "aws_iam_role_policy_attachment" "node_policy" {
-  for_each =toset([
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-      ])
-  policy_arn = each.value
-    role       = aws_iam_role.nodes.name
+resource "aws_iam_role_policy_attachment" "node_worker_policy" {
+  role       = aws_iam_role.nodes.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
 
+resource "aws_iam_role_policy_attachment" "node_cni_policy" {
+  role       = aws_iam_role.nodes.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "node_registry_policy" {
+  role       = aws_iam_role.nodes.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# IAM role for EBS CSI driver using Pod Identity
+resource "aws_iam_role" "ebs_csi_driver" {
+  name = "AmazonEKSPodIdentityAmazonEBSCSIDriverRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
+  role       = aws_iam_role.ebs_csi_driver.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+# Pod Identity Association for EBS CSI driver
+resource "aws_eks_pod_identity_association" "ebs_csi" {
+  cluster_name    = aws_eks_cluster.custom.name
+  namespace       = "kube-system"
+  service_account = "ebs-csi-controller-sa"
+  role_arn        = aws_iam_role.ebs_csi_driver.arn
 }
 
 resource "aws_eks_node_group" "main" {
@@ -92,35 +120,20 @@ resource "aws_eks_node_group" "main" {
     }
     disk_size = 20
     instance_types = each.value.instance_types
-    depends_on = [aws_eks_cluster.custom, aws_iam_role_policy_attachment.node_policy]
+    depends_on = [aws_eks_cluster.custom]
 
 }
 
-resource "aws_eks_addon" "vpc_cni" {
+resource "aws_eks_addon" "addons" {
+  for_each     = toset(["vpc-cni", "kube-proxy", "coredns","metrics-server","eks-pod-identity-agent"])
   cluster_name = aws_eks_cluster.custom.name
-  addon_name   = "vpc-cni"
-  depends_on = [aws_eks_cluster.custom]
-} 
-
-resource "aws_eks_addon" "vpc_kube_proxy" {
-  cluster_name = aws_eks_cluster.custom.name
-  addon_name   = "kube-proxy"
-  depends_on = [aws_eks_cluster.custom]     
-  
-}
-
-resource "aws_eks_addon" "vpc_core_dns" {
-  cluster_name = aws_eks_cluster.custom.name
-  addon_name   = "coredns"
-  depends_on = [aws_eks_cluster.custom]
-  
+  addon_name   = each.value
 }
 
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.custom.name
   addon_name   = "aws-ebs-csi-driver"
-  depends_on = [aws_eks_cluster.custom]         
-  
+  depends_on   = [aws_eks_pod_identity_association.ebs_csi]
 }
 
 resource "aws_eks_access_entry" "console_access" {
