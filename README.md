@@ -27,7 +27,6 @@ User-data-IaC/
 ├── provider.tf                    # Terraform and AWS provider config
 ├── variable.tf                    # Root variables with defaults
 ├── output.tf                      # Root outputs
-├── terraform.tfvars.example       # Example variables file
 ├── .gitignore                     # Git ignore patterns
 ├── .terraform.lock.hcl            # Terraform dependency lock
 ├── LICENSE                        # MIT License
@@ -38,7 +37,7 @@ User-data-IaC/
 
 ### Infrastructure Components
 
-- **🌐 VPC Module**: Creates isolated network with public/private subnets across 2 AZs
+- **🌐 VPC Module**: Creates isolated network with public/private subnets across 2 AZs as HA
 - **☸️ EKS Module**: Deploys managed Kubernetes cluster with worker nodes and essential addons
 - **🔄 GitHub Actions**: Automated deployment pipeline with proper error handling
 - **🔒 Security**: IAM roles, access entries, and encrypted state management
@@ -98,7 +97,7 @@ Navigate to your repository → Settings → Secrets and variables → Actions, 
 1. Go to **Actions** tab in your repository
 2. Select **eks_setup** workflow
 3. Click **Run workflow**
-4. Choose **create-cluster** action
+4. Choose **create-cluster** action and required **branch**
 
 #### Option B: Local Deployment
 ```bash
@@ -130,7 +129,7 @@ kubectl get nodes
 |-----------|---------------|-------------|
 | **Region** | `us-east-1` | AWS region |
 | **VPC CIDR** | `10.0.0.0/16` | VPC IP range |
-| **EKS Version** | `1.31` | Kubernetes version |
+| **EKS Version** | `1.33` | Kubernetes version |
 | **Node Instance** | `t3.small` | EC2 instance type |
 | **Node Count** | `2` (min: 2, max: 3) | Worker nodes |
 | **Disk Size** | `20 GB` | EBS volume size |
@@ -147,7 +146,7 @@ public_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
 availability_zones = ["us-east-1a", "us-east-1b"]
 
 # EKS Configuration
-cluster_version = "1.31"
+cluster_version = "1.33"
 node_groups = {
   general = {
     instance_types = ["t3.medium"]
@@ -213,7 +212,7 @@ node_groups = {
     instance_types = ["t3.medium", "t3.large"]
     capacity_type  = "SPOT"
     scaling_config = {
-      desired_capacity = 2
+      desired_capacity = 1
       min_size         = 1
       max_size         = 10
     }
@@ -254,6 +253,24 @@ kubectl get pods -n kube-system
 aws eks describe-addon --cluster-name custom-eks --addon-name vpc-cni
 ```
 
+### Testing / accesssing application
+
+After deploying application in eks, to access it from service as NodePort in case of LoadBalancer use the below steps:
+(If deployed as LB service then we can access application using the DNS provided by LB)
+
+Start a debug pod with curl installed
+Run a temporary pod with curl tool (example uses curlimages/curl image):
+
+kubectl run -i --tty curlpod --image=curlimages/curl --restart=Never -- sh
+
+This gives you a shell prompt inside the pod.
+Curl your service inside cluster
+Use the service name and port, for example:
+
+curl http://backend-service.myapp.svc.cluster.local:8008/docs
+
+O/P would be the HTTP in CLI which confirms the app running.
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
@@ -262,6 +279,7 @@ aws eks describe-addon --cluster-name custom-eks --addon-name vpc-cni
 |-------|----------|
 | **Access Denied** | Verify IAM permissions and access entries |
 | **Timeout Errors** | Check VPC configuration and security groups |
+|**EBS not Bounding**| When the pvc is applied it usually will be in pending state due to missing permission |
 | **State Lock** | Verify DynamoDB table exists and is accessible |
 | **Node Join Issues** | Check subnet routing and security groups |
 
@@ -307,6 +325,7 @@ terraform destroy
 - [eksctl](https://eksctl.io/) - EKS CLI tool
 - [k9s](https://k9scli.io/) - Terminal UI for Kubernetes
 - [Lens](https://k8slens.dev/) - Kubernetes IDE
+- [minikube](https://minikube.sigs.k8s.io/docs/) - Running k8s locally 
 
 ### Community
 - [AWS EKS Roadmap](https://github.com/aws/containers-roadmap)
@@ -327,9 +346,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙋‍♂️ Support
 
-- 📧 Email: your-email@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/User-data-IaC/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/User-data-IaC/discussions)
+- 📧 Email: sudarshanrpgowda7@gmail.com
+- 🐛 Issues: [GitHub Issues](https://github.com/sudarshan-rp/User-data-IaC/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/sudarshan-rp/User-data-IaC/discussions)
 
 ---
 
