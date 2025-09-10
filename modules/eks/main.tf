@@ -8,6 +8,11 @@ resource "aws_eks_cluster" "custom" {
     subnet_ids = var.private_subnet_ids
   }
 
+  access_config {
+    authentication_mode = "API"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy
   ]
@@ -117,3 +122,24 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   depends_on = [aws_eks_cluster.custom]         
   
 }
+
+resource "aws_eks_access_entry" "console_access" {
+  cluster_name  = aws_eks_cluster.custom.name
+  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+  type          = "STANDARD"
+  depends_on    = [aws_eks_cluster.custom]
+}
+
+resource "aws_eks_access_policy_association" "console_admin" {
+  cluster_name  = aws_eks_cluster.custom.name
+  principal_arn = aws_eks_access_entry.console_access.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+  depends_on = [aws_eks_access_entry.console_access]
+}
+
+# Data source to get current AWS account ID
+data "aws_caller_identity" "current" {}
