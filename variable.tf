@@ -5,7 +5,7 @@ variable "vpc_cidr" {
 }
 
 variable "private_subnet_cidrs" {
-  description = "value for the privet subnet CIDR block"
+  description = "value for the private subnet CIDR block"
   type        = list(string)
   default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
@@ -26,7 +26,6 @@ variable "cluster_version" {
   description = "Kubernetes cluster version"
   type        = string
   default     = "1.33"
-
 }
 
 variable "node_groups" {
