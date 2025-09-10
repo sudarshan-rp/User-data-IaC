@@ -25,7 +25,7 @@ variable "availability_zones" {
 variable "cluster_version" {
   description = "Kubernetes cluster version"
   type        = string
-  default     = "1.31"
+  default     = "1.33"
 
 }
 
