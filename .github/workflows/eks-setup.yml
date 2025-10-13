@@ -30,15 +30,6 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Run Terrascan
-              uses: tenable/terrascan-action@main
-              with:
-                iac_type: 'terraform'
-                iac_version: 'v15'
-                policy_type: 'aws'
-                only_warn: true
-                sarif_upload: true
-
             - name: Run Checkov
               uses: bridgecrewio/checkov-action@master
               with:
