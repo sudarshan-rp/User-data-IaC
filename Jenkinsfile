@@ -29,9 +29,11 @@ pipeline {
                 script {
                     // Download exact Terraform version (same as GitHub Actions)
                     sh '''
+                        mkdir -p $HOME/bin
                         wget -q https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
                         unzip -o terraform_1.5.7_linux_amd64.zip
-                        sudo mv terraform /usr/local/bin/terraform || mv terraform /usr/bin/terraform
+                        mv terraform $HOME/bin/terraform
+                        export PATH="$HOME/bin:$PATH"
                         terraform --version
                     '''
                 }
@@ -40,12 +42,10 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                sh """
-                    terraform init \
-                      -backend-config="bucket=${BUCKET_TF_STATE}" \
-                      -backend-config="key=eks-cluster.tfstate" \
-                      -backend-config="region=${AWS_DEFAULT_REGION}"
-                """
+                sh '''
+                    export PATH="$HOME/bin:$PATH"
+                    terraform init -backend-config="bucket=${BUCKET_TF_STATE}" -backend-config="region=${AWS_DEFAULT_REGION}"
+                '''
             }
         }
 
