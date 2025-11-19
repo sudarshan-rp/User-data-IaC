@@ -9,6 +9,9 @@ pipeline {
         )
     }
 
+    tools {
+    terraform 'terraform-1.5.7'
+    }
 
     environment {
         // Pull secrets from Jenkins credentials
