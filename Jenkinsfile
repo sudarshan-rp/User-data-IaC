@@ -9,6 +9,10 @@ pipeline {
         )
     }
 
+    tools {
+    terraform 'terraform-1.5.7'
+    }
+
     environment {
         // Pull secrets from Jenkins credentials
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')           // ID of AWS Credentials
