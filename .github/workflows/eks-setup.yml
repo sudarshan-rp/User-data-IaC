@@ -74,6 +74,8 @@ jobs:
               with:
                   role-to-assume: ${{env.AWS_IAM_ROLE}}
                   aws-region: us-east-1
+                  role-session-name: GitHubActions
+                  audience: sts.amazonaws.com        
 
             - name: Terraform Init
               run: terraform init -backend-config="bucket=$BUCKET_TF_STATE" 
