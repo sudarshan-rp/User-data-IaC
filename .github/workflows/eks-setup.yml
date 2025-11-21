@@ -46,9 +46,9 @@ jobs:
             
             - name: Upload Terrascan SARIF report
               if: matrix.tool == 'terrascan'
-              uses: github/codeql-action/upload-sarif@v3
+              uses: github/codeql-action/upload-sarif@v4
               with:
-                sarif_file: terrascan-report.sarif
+                sarif_file: terrascan.sarif
 
             - name: Run Checkov
               if: matrix.tool == 'checkov'
