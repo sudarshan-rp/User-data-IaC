@@ -47,16 +47,16 @@ variable "node_groups" {
   #     }
   #   }
   # }
-    default = {
-      general = {
-        instance_types = ["c7i-flex.large"]
-        scaling_config = {
-          desired_capacity = 2
-          min_size         = 1
-          max_size         = 3
-        }
+  default = {
+    general = {
+      instance_types = ["c7i-flex.large"]
+      scaling_config = {
+        desired_capacity = 2
+        min_size         = 1
+        max_size         = 3
       }
     }
+  }
 
 }
 
