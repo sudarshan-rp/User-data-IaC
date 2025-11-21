@@ -43,6 +43,12 @@ jobs:
                 policy_type: 'aws'
                 only_warn: true
                 sarif_upload: true
+            
+            - name: Upload Terrascan SARIF report
+              if: matrix.tool == 'terrascan'
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                sarif_file: terrascan-report.sarif
 
             - name: Run Checkov
               if: matrix.tool == 'checkov'
