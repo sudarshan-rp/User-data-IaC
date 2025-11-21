@@ -19,21 +19,23 @@ permissions:
     security-events: write
 
 env:
-    #AWS_ACCESS_KEY_ID : ${{ secrets.AWS_ACCESS_KEY_ID}}
-    #AWS_SECRET_ACCESS_KEY : ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-    BUCKET_TF_STATE : ${{ secrets.BUCKET_TF_STATE}}
-    AWS_IAM_ROLE : ${{secrets.AWS_IAM_ROLE}}
+    BUCKET_TF_STATE : ${{ secrets.BUCKET_TF_STATE}} # The S3 bucket name for Terraform state storage
+    AWS_IAM_ROLE : ${{secrets.AWS_IAM_ROLE}} # The IAM Role ARN to assume via OIDC for AWS access
 
 jobs:
     security-scan:
         runs-on: ubuntu-latest
-        name: Security Scanning
+        timeout-minutes: 15
+        strategy:
+            matrix:
+                tool: [terrascan, checkov]
+        name: Security Scanning (${{ matrix.tool }})
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            
             - name: Run Terrascan
+              if: matrix.tool == 'terrascan'
               uses: tenable/terrascan-action@main
               with:
                 iac_type: 'terraform'
@@ -43,6 +45,7 @@ jobs:
                 sarif_upload: true
 
             - name: Run Checkov
+              if: matrix.tool == 'checkov'
               uses: bridgecrewio/checkov-action@master
               with:
                 directory: .
@@ -52,26 +55,35 @@ jobs:
                 soft_fail: true
 
             - name: Upload Checkov SARIF report
+              if: matrix.tool == 'checkov'
               uses: github/codeql-action/upload-sarif@v3
               with:
                 sarif_file: checkov-report.sarif
-              
 
     terraform:
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         needs: security-scan
 
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v2
+            - name: Cache Terraform
+              uses: actions/cache@v3
               with:
-                terraform_version: 1.5.7
+                path: |
+                  ~/.terraform.d/plugin-cache
+                  .terraform
+                key: terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                terraform_version: 1.9.8
 
             - name: Configure AWS Credentials via OIDC
-              uses: aws-actions/configure-aws-credentials@v2
+              uses: aws-actions/configure-aws-credentials@v4
               with:
                   role-to-assume: ${{env.AWS_IAM_ROLE}}
                   aws-region: us-east-1
@@ -80,9 +92,6 @@ jobs:
 
             - name: Terraform Init
               run: terraform init -backend-config="bucket=$BUCKET_TF_STATE" 
-            
-            - name: Terraform Format without checking
-              run: terraform fmt     
 
             - name: Terraform Format
               run: terraform fmt -check
@@ -91,13 +100,20 @@ jobs:
               run: terraform validate
 
             - name: Terraform Plan
+              if: github.event.inputs.action == 'create-cluster'
               run: terraform plan -input=false
 
-            - name: Terraform Apply
-              run: | 
-                if [ "${{ github.event.inputs.action }}" == "create-cluster" ]; then terraform apply -auto-approve  
-                elif [ "${{ github.event.inputs.action }}" == "delete-cluster" ]; then terraform destroy -auto-approve -input=false
-                else
-                echo "Invalid action"
-                exit 1
-                fi
+            - name: Terraform Apply/Destroy
+              run: |
+                case "${{ github.event.inputs.action }}" in
+                  "create-cluster")
+                    terraform apply -auto-approve
+                    ;;
+                  "delete-cluster")
+                    terraform destroy -auto-approve
+                    ;;
+                  *)
+                    echo "Invalid action: ${{ github.event.inputs.action }}"
+                    exit 1
+                    ;;
+                esac

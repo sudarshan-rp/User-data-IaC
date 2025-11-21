@@ -308,6 +308,24 @@ aws eks describe-nodegroup --cluster-name custom-eks --nodegroup-name general
 terraform destroy
 ```
 
+##Updates implimented on 21//11
+
+Performance:
+• ✅ Parallel security scans using matrix strategy
+• ✅ Terraform caching for faster subsequent runs
+• ✅ Conditional plan step (only for create-cluster)
+• ✅ Removed duplicate format step
+
+Reliability:
+• ✅ Timeouts: 15min for security, 30min for terraform
+• ✅ Improved error handling with case statement
+• ✅ Updated action versions: checkout@v4, setup-terraform@v3, configure-aws-credentials@v4
+• ✅ Latest Terraform version: 1.9.8
+
+Security:
+• ✅ Both SARIF uploads for centralized security reporting
+
+
 ## 📚 Additional Resources
 
 ### Official Documentation
