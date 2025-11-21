@@ -16,6 +16,13 @@ resource "aws_eks_cluster" "custom" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
+  tags = {
+    Name        = "custom-eks"
+    Environment = "dev"
+    Project     = "eks-infrastructure"
+    ManagedBy   = "terraform"
+  }
+
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
 }
 
@@ -38,6 +45,13 @@ resource "aws_iam_role" "eks-cluster" {
         }
         ]
     })
+
+    tags = {
+        Name        = "eks-cluster-role"
+        Environment = "dev"
+        Project     = "eks-infrastructure"
+        ManagedBy   = "terraform"
+    }
 }
 
 #Attaches the AWS managed policy AmazonEKSClusterPolicy to the cluster IAM role to grant necessary EKS permissions.
@@ -67,6 +81,13 @@ resource "aws_iam_role" "nodes" {
         }
         ]
     })
+
+    tags = {
+        Name        = "eks-node-role"
+        Environment = "dev"
+        Project     = "eks-infrastructure"
+        ManagedBy   = "terraform"
+    }
   
 }
 
@@ -109,6 +130,13 @@ resource "aws_iam_role" "ebs_csi_driver" {
       }
     ]
   })
+
+  tags = {
+    Name        = "ebs-csi-driver-role"
+    Environment = "dev"
+    Project     = "eks-infrastructure"
+    ManagedBy   = "terraform"
+  }
 }
 #Grants permissions to the EBS CSI driver role for managing AWS EBS volumes.
 resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
@@ -143,6 +171,14 @@ resource "aws_eks_node_group" "main" {
     }
     disk_size = var.disk_size #disk size in GB for the worker nodes
     instance_types = each.value.instance_types
+
+    tags = {
+        Name        = "eks-node-group-${each.key}"
+        Environment = "dev"
+        Project     = "eks-infrastructure"
+        ManagedBy   = "terraform"
+    }
+
     depends_on = [aws_eks_cluster.custom]
 
 }
@@ -154,6 +190,13 @@ resource "aws_eks_addon" "addons" {
   for_each     = toset(["vpc-cni", "kube-proxy", "coredns","metrics-server","eks-pod-identity-agent"])
   cluster_name = aws_eks_cluster.custom.name
   addon_name   = each.value
+
+  tags = {
+    Name        = "eks-addon-${each.value}"
+    Environment = "dev"
+    Project     = "eks-infrastructure"
+    ManagedBy   = "terraform"
+  }
 }
 
 #ebs csi driver addon with pod identity association for dynamic provisioning of persistent volumes using EBS. 
@@ -161,6 +204,14 @@ resource "aws_eks_addon" "addons" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.custom.name
   addon_name   = "aws-ebs-csi-driver"
+
+  tags = {
+    Name        = "eks-addon-ebs-csi-driver"
+    Environment = "dev"
+    Project     = "eks-infrastructure"
+    ManagedBy   = "terraform"
+  }
+
   depends_on   = [aws_eks_pod_identity_association.ebs_csi]
 }
 
