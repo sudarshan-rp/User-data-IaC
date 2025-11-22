@@ -221,7 +221,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 
 resource "aws_eks_access_entry" "console_access" {
   cluster_name  = aws_eks_cluster.custom.name
-  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/july2025"
   type          = "STANDARD"
   depends_on    = [aws_eks_cluster.custom]
 }
